@@ -478,11 +478,7 @@ async def ask_endpoint(websocket: WebSocket):
                 "Answer the question based on your general knowledge without any specific context. "
                 "If relevant, provide as detailed and informative an answer as possible. Answer: "
             )
-            input_text = (
-                f"Question: {corrected_question} "
-                "Answer the question based on your general knowledge without any specific context. "
-                "If relevant, provide as detailed and informative an answer as possible. Answer: "
-            )
+            input_text = "User: " + corrected_question + "\nAssistant:"
         
         # Генерация ответа с использованием модели FLAN
         input_ids = tokenizer_flan(input_text_flan, return_tensors='pt').input_ids.to(device)
@@ -588,19 +584,17 @@ async def process_questions(file: UploadFile = File(...)):
             # Remove file extension from filename
             filename = os.path.splitext(hit["_source"]["file_name"])[0]
             slide_number = hit["_source"]["page_number"]
-            input_text = f"Question: {corrected_question} Context (if relevant): {context} Answer: "
+            # input_text = f"Question: {corrected_question} Context (if relevant): {context} Answer: "
+            input_text = context + "User: " + corrected_question + "\nAssistant:"
         else:
             filename = ''
             slide_number = ''
-            input_text = (
-                f"Question: {corrected_question} "
-                "Answer the question based on your general knowledge without any specific context. "
-                "If relevant, provide as detailed and informative an answer as possible. Answer: "
-            )
+            input_text = "User: " + corrected_question + "\nAssistant:"
+
 
         # Generate answer using the language model
-        input_ids = tokenizer_flan(input_text, return_tensors='pt').input_ids.to(device)
-        outputs = model_flan.generate(
+        input_ids = tokenizer_vicuna(input_text, return_tensors='pt').input_ids.to(device)
+        outputs = model_vicuna.generate(
             input_ids,
             temperature=0.7,
             max_length=256,
@@ -610,7 +604,13 @@ async def process_questions(file: UploadFile = File(...)):
             do_sample=True,
             use_cache=False,
         )
-        answer = tokenizer_flan.decode(outputs[0], skip_special_tokens=True)
+        answer = tokenizer_vicuna.decode(outputs[0], skip_special_tokens=True)
+        
+        index = answer.find("Answer:")
+        if index != -1:
+            answer = answer.split("Answer:")[-1].strip()
+        else:
+            answer = answer.split("Assistant:")[-1].strip()
 
         # Translate the answer back to Russian if necessary
         if language == 'ru':
@@ -689,43 +689,3 @@ async def vote_endpoint(data: LearningScore):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-        
-# # API для получения информации о файле по его checksum
-# @app.get("/file_info/{checksum}")
-# async def get_file_info(checksum: str):
-#     # Поиск файла по его контрольной сумме
-#     query = {
-#         "query": {
-#             "match": {
-#                 "checksum": checksum
-#             }
-#         }
-#     }
-#     result = es.search(index="uploaded_files", body=query)
-#     if result['hits']['total']['value'] == 0:
-#         raise HTTPException(status_code=404, detail="Файл не найден.")
-    
-#     file_info = result['hits']['hits'][0]['_source']
-#     return {
-#         "file_id": file_info["file_id"],
-#         "file_name": file_info["file_name"],
-#         "checksum": file_info["checksum"],
-#         "uploaded_at": file_info["uploaded_at"],
-#         "file_size": file_info["file_size"]
-#     }
-
-# # API для получения списка всех загруженных файлов
-# @app.get("/files")
-# async def get_uploaded_files(skip: int = 0, limit: int = 10):
-#     query = {
-#         "from": skip,
-#         "size": limit,
-#         "query": {
-#             "match_all": {}
-#         }
-#     }
-#     result = es.search(index="uploaded_files", body=query)
-#     files = [{"file_id": hit["_source"]["file_id"], "file_name": hit["_source"]["file_name"]} for hit in result['hits']['hits']]
-    
-#     return {"files": files}
