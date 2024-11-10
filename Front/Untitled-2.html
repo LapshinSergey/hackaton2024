@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Chat</title>
+
+    <link rel="stylesheet" href="CSS/version2.css">
+    <!-- AdminLTE CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.1.0/css/adminlte.min.css">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div class="main-laylout">
+    <!-- Боковое меню -->
+        <div class="sidebar" style="position: fixed; top: 0; left: 0; width: 200px; height: 100%; background-color: #162e86; padding: 10px;">
+            <!--<button class="menu-btn" id="chat-btn" style="background-color: #444; color: white;">Чат</button>-->
+            <!--<button class="menu-btn" id="search-btn" style="background-color: #444; color: white;">Поиск</button>-->
+            <label for="xlsx-file-input" style="font-weight: normal; margin-top: 10px;" class="menu-btn">Загрузить XLSX файл</label>
+            <input type="file" id="xlsx-file-input" accept=".xlsx" style="display: none;">
+            <label for="file-input" class="menu-btn" style="background-color: #444; color: white;font-weight: normal;">Загрузка файлов</label>
+            <input type="file" id="file-input" class="but" accept="*/*" style="display: none;">
+        </div>
+
+        <div class="container mt-5">
+            <!-- DIRECT CHAT PRIMARY -->
+            <div class="card card-primary direct-chat direct-chat-primary">
+                <div class="card-header">
+                    <img src="Assets\media_wise_logo_white.svg" class="card-title">
+                    <div class="card-tools">
+                        <span title="3 New Messages" class="badge badge-light">3</span>
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+                        <button type="button" class="btn btn-tool" data-widget="chat-pane-toggle"><i class="fas fa-comments"></i></button>
+                        <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+                <!-- /.card-header -->
+                <div class="card-body">
+                    <!-- Conversations are loaded here -->
+                    <div class="direct-chat-messages" id="chat-messages">
+                        <!-- Messages will be dynamically added here -->
+                    </div>
+                    <!--/.direct-chat-messages-->
+                </div>
+                <!-- /.card-body -->
+                <div class="card-footer">
+                    <div class="input-group">
+                        <input type="text" id="chat-input" placeholder="Напишите сообщение..." class="form-control">
+                        <span class="input-group-append brake">
+                            <button id="send-button" type="button" class="btn btn-primary">Отправить</button>
+                        </span>
+                    </div>
+                    <!-- Контейнер для предложений автозаполнения -->
+                    <div id="suggestions" class="suggestions-container"></div>
+                </div>
+                <!-- /.card-footer-->
+            </div>
+            <!--/.direct-chat -->
+        </div>
+    </div>
+
+
+    <!-- AdminLTE and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.1.0/js/adminlte.min.js"></script>
+    <script src="JS/Sug.js"></script>
+    <script src="JS/message.js"></script>
+    <script src="JS/upload.js"></script>
+    <script src="JS/message.js" type="module"></script>
+    <script src="JS/upload_xl.js"></script>
+    <script src="JS/sendRating.js"></script>
+
+
+
+    
+</body>
+</html>
