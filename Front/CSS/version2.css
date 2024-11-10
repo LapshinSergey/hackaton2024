@@ -1,0 +1,424 @@
+/* Основные стили для бокового меню */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 100%;
+    background-color: #333;
+    padding-top: 20px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+  }
+.card-header{
+  background-color: 07174b !important;
+}
+.card{
+  min-height: 600px !important;
+}
+  
+.menu-btn {
+    background-color: #444;
+    color: white;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    text-align: left;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s; /* Плавный переход для цвета и фона */
+}
+
+div.sidebar .menu-btn:hover {
+  background-color: #315288;
+  color: #f0f0f0;
+}
+
+
+  /* Стили для кнопки отправки */
+button#send-button {
+    border-radius: 5px;  /* Сделает кнопку овальной */
+    padding: 10px 20px;   /* Добавляем отступы для кнопки */
+    background-color: #162e86; /* Цвет кнопки */
+    color: white;          /* Цвет текста */
+    font-size: 16px;       /* Размер шрифта */
+    border: none;          /* Убираем границу */
+    cursor: pointer;      /* Курсор при наведении */
+    transition: background-color 0.3s; /* Плавный переход при наведении */
+}
+
+button#send-button:hover {
+    background-color: #0056b3; /* Изменение цвета при наведении */
+}
+
+.card-primary:not(.card-outline)>.card-header {
+  background-color: #07174b !important;
+}
+
+/* Общие стили для сообщений */
+.message {
+    max-width: 80%;
+    padding: 10px;
+    border-radius: 10px;
+    margin: 10px;
+}
+
+/* Стили для сообщений пользователя */
+.user-message {
+    background-color: #d1e7dd;
+    align-self: flex-end; /* Сообщение пользователя справа */
+    text-align: right;
+}
+
+/* Стили для сообщений бота */
+.bot-message {
+    background-color: #f8d7da;
+    align-self: flex-start; /* Сообщение бота слева */
+    text-align: left;
+}
+
+/* Стили для контейнера сообщений */
+#chat-messages {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Для выравнивания сообщений по левому краю */
+    justify-content: flex-start;
+    overflow-y: auto;
+    min-height: 430px;
+    padding: 10px;
+}
+
+
+
+/* Стили для кнопки отправки */
+button.loading {
+    background: url('https://cdn.jsdelivr.net/npm/@mdi/font/css/materialdesignicons.min.css') no-repeat center center;
+    background-size: 20px;
+    cursor: not-allowed;
+}
+
+  .but {
+    display: none;
+  }
+  /* Основные стили чата */
+.direct-chat-messages {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding: 5px;
+}
+
+/* Стили для сообщений */
+.message {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    width: fit-content;
+}
+
+
+/* user-message *//* user-message *//* user-message */
+.user-message {
+    background-color: #e9ecef;
+    text-align: left;
+}
+
+/* bot-message *//* bot-message *//* bot-message */
+.bot-message {         
+    background-color: #315288;
+    color: #fff;
+    
+}
+
+.star-rating {
+    display: flex;
+
+    direction: rtl;
+    justify-content: flex-start; /* Выравнивает звёзды по правому краю */
+  }
+  
+  .star-rating input[type="radio"] {
+    display: none;
+  }
+  
+  .star-rating label {
+    font-size: 20px;
+    color: #d3d3d3;
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+  
+  .star-rating input[type="radio"]:checked ~ label {
+    color: gold;
+  }
+  
+  .star-rating input[type="radio"]:hover ~ label,
+  .star-rating label:hover {
+    color: gold;
+  }
+
+
+/* Кнопка отправки с индикатором загрузки */
+#send-button.loading {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#send-button.loading::after {
+    content: '...';
+}
+
+/* Стили для ввода текста */
+#chat-input {
+  margin-top: 20px;
+  height: 35px;
+  border-radius: 5px;
+}
+
+.input-group-append .btn-primary {
+    border-radius: 15px;
+}
+.brake{
+    margin-left: 15px !important;
+}
+
+.container{
+  min-width: 340px !important;
+  margin-left: auto !important;
+  margin-left: 320px;
+}
+
+.center{
+  display: flex;
+}
+/*8*************************************************************************8*/
+.main-layout {
+  display: flex;
+}
+
+.sidebar {
+  width: 200px !important;
+  height: 100vh;
+  position: fixed;
+}
+
+.container {
+  margin-left: 210px !important; /* Отступ для основного контента */
+  flex-grow: 1!important;
+  max-width: calc(100% - 220px)!important;
+  padding: 20px!important;
+}
+
+
+
+
+/* Основные стили для контейнера чата */
+.chat-container {
+  width: 300px;
+  margin: 0 auto;
+  background-color: #f1f1f1;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+/* Стили для поля ввода и контейнера предложений */
+.input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+
+
+#send-button {
+  background-color: #007bff;
+  color: white;
+  padding: 8px 16px;
+  margin-left: 10px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#send-button:hover {
+  background-color: #0056b3;
+}
+
+/* Стили для контейнера предложений */
+.suggestions-container {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+/* Стили для элемента подсказки */
+.suggestion-item {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.suggestion-item:hover {
+  background-color: #f1f1f1;
+}
+
+
+/* Убираем все границы таблицы, заголовков и ячеек */
+.table-no-border,
+.table-no-border th,
+.table-no-border td,
+.table-no-border tr {
+    border: none; /* Полностью убираем все границы */
+}
+
+/* Убираем возможные внутренние границы */
+.table-no-border th, 
+.table-no-border td {
+    border-top: none;
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+}
+
+/* Убираем внешние отступы и границы для строк и ячеек, чтобы не оставались разделительные линии */
+.table-no-border {
+    border-collapse: collapse; /* Убираем все возможные разделения между ячейками */
+    border-spacing: 0; /* Устанавливаем расстояние между ячейками в 0 */
+}
+
+/* Ссылки в таблице должны быть белыми */
+.table-no-border a {
+  color: white; /* Задаем белый цвет для ссылок */
+  text-decoration: none; /* Убираем подчеркивание, если оно не нужно */
+}
+
+/* Общий стиль для затемнения фона */
+.modal-container {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+/* Стиль содержимого модального окна */
+.modal-content {
+  background-color: #fff;
+  margin: auto;
+  margin-top: 40px;
+  padding: 20px;
+  border-radius: 5px;
+  width: 80%;
+  max-width: 700px;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+.rating-container{
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Кнопка закрытия модального окна */
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 24px;
+  color: #333;
+  cursor: pointer;
+}
+
+/* Стиль таблицы в модальном окне */
+.modal-content .table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.modal-content .table th,
+.modal-content .table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.modal-content .table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.details-button {
+  cursor: pointer;
+  color: #007bff;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  text-decoration: underline; /* Если хотите подчеркнуть текст */
+}
+
+.details-button:hover {
+  color: #0056b3;
+}
+
+
+
+/* Фон для модального окна */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Модальное окно */
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  margin-top: 300px;
+  border-radius: 8px;
+  text-align: center;
+  width: 200px;
+  font-family: Arial, sans-serif;
+}
+
+/* Кольцо с анимацией вращения */
+.loader-ring {
+  width: 50px;
+  height: 50px;
+  border: 6px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+/* Анимация вращения */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
