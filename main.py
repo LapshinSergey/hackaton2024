@@ -1,6 +1,7 @@
 import hashlib
-import re
+import os
 import nltk
+import string
 import magic
 import PyPDF2
 from PyPDF2 import PdfReader
@@ -10,9 +11,9 @@ from langdetect import detect
 from fastapi import FastAPI, File, UploadFile, WebSocket, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.logger import logger
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, exceptions
 from sentence_transformers import SentenceTransformer, util
-from transformers import MarianMTModel, MarianTokenizer, T5Tokenizer, T5ForConditionalGeneration
+from transformers import MarianMTModel, MarianTokenizer, T5Tokenizer, T5ForConditionalGeneration, AutoModelForSeq2SeqLM, AutoTokenizer
 import torch
 from datetime import datetime
 import nltk
@@ -21,6 +22,17 @@ from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import pandas as pd
+import io
+import torch
+from fastapi.responses import StreamingResponse
+from typing import List
+
+
+
 
 
 
@@ -29,24 +41,47 @@ nltk.download('punkt_tab')
 
 app = FastAPI()
 
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:8001",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)   
+
 # Настройка устройства для использования GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Инициализация моделей
 model_sbert = SentenceTransformer('paraphrase-MiniLM-L6-v2').to(device)
 
-# model_flan = T5ForConditionalGeneration.from_pretrained('google/flan-t5-large').to(device)
-# tokenizer_flan = T5Tokenizer.from_pretrained('google/flan-t5-large')
+# Загрузка основной модели 
+model_vicuna = AutoModelForCausalLM.from_pretrained(
+    './llama-base_fine-tuned',
+    device_map="auto",  # Автоматическое распределение на доступные устройства
+    torch_dtype=torch.float16,  # Использование смешанной точности для экономии памяти
+    load_in_8bit=False  # Опционально: загрузка модели в 8-битном формате для снижения потребления памяти
+)
+model_vicuna.to(device)
 
-model_flan = T5ForConditionalGeneration.from_pretrained('./flan-T5-base_fine-tuned').to(device)
-tokenizer_flan = T5Tokenizer.from_pretrained('./flan-T5-base_fine-tuned')
+tokenizer_vicuna = AutoTokenizer.from_pretrained('./llama-base_fine-tuned', use_fast=True)
 
+# Загрузка модели translate
 model_marian = MarianMTModel.from_pretrained('Helsinki-NLP/opus-mt-ru-en').to(device)
 tokenizer_marian = MarianTokenizer.from_pretrained('Helsinki-NLP/opus-mt-ru-en')
 
 model_marian_ru = MarianMTModel.from_pretrained('Helsinki-NLP/opus-mt-en-ru').to(device)
 tokenizer_marian_ru = MarianTokenizer.from_pretrained('Helsinki-NLP/opus-mt-en-ru')
-# model_marian.to(device)
+
+# Загрузка модели t5
+model_flan = AutoModelForSeq2SeqLM.from_pretrained('google/flan-t5-base', device_map="auto", torch_dtype="auto").to(device)
+tokenizer_flan = AutoTokenizer.from_pretrained('google/flan-t5-base')
 
 # Инициализация Elasticsearch с указанием хоста
 # URL Elasticsearch и данные для авторизации
@@ -393,17 +428,11 @@ async def ask_endpoint(websocket: WebSocket):
 
         # Определение языка вопроса
         language = detect(question)
-
-        # Исправление вопроса с использованием модели FLAN
-        # input_ids = tokenizer_flan(question, return_tensors='pt').input_ids.to(device)
-        # outputs = model_flan.generate(input_ids, max_length=128, top_p=0.95, top_k=40)
-        # corrected_question = tokenizer_flan.decode(outputs[0], skip_special_tokens=True)
         
         corrected_question = question
 
         if language == 'ru':
             corrected_question = translate_text(corrected_question, model=model_marian, tokenizer=tokenizer_marian, language='english')
-
 
         # Поиск релевантных блоков текста
         question_embedding = model_sbert.encode(corrected_question).tolist()
@@ -440,8 +469,15 @@ async def ask_endpoint(websocket: WebSocket):
                 }
                 if hit["_score"] > min_score:
                     relevant_blocks.append(block)
-            input_text = f"Question: {corrected_question} Context (if relevant): {context} Answer: "
+            input_text_flan = f"Question: {corrected_question} Context (if relevant): {context} Answer: "
+            # input_text = f"Question: {corrected_question} Context (if relevant): {context} Answer: "
+            input_text = context + "User: " + corrected_question + "\nAssistant:"
         else:
+            input_text_flan = (
+                f"Question: {corrected_question} "
+                "Answer the question based on your general knowledge without any specific context. "
+                "If relevant, provide as detailed and informative an answer as possible. Answer: "
+            )
             input_text = (
                 f"Question: {corrected_question} "
                 "Answer the question based on your general knowledge without any specific context. "
@@ -449,49 +485,161 @@ async def ask_endpoint(websocket: WebSocket):
             )
         
         # Генерация ответа с использованием модели FLAN
-        # input_text = f"Question: {corrected_question} Context (if relevant): {context} Answer: "
-        input_ids = tokenizer_flan(input_text, return_tensors='pt').input_ids.to(device)
+        input_ids = tokenizer_flan(input_text_flan, return_tensors='pt').input_ids.to(device)
         outputs = model_flan.generate(
             input_ids,
-            temperature=1.1,
-            max_length=128,
-            top_p=0.90,
-            top_k=50,
-            use_cache=False
+            temperature=0.7,
+            max_length=256,
+            max_new_tokens = 50,
+            top_p=0.9,
+            top_k=40,
+            do_sample=True,
+            use_cache=False,
         )
-        answer = tokenizer_flan.decode(outputs[0], skip_special_tokens=True)
+        answer_flan = tokenizer_flan.decode(outputs[0], skip_special_tokens=True)
 
+        # Генерация ответа с использованием модели VICUNA
+        input_ids = tokenizer_vicuna(input_text, return_tensors='pt').input_ids.to(device)
+        outputs = model_vicuna.generate(
+            input_ids,
+            temperature=0.7,
+            max_length=256,
+            max_new_tokens = 50,
+            top_p=0.9,
+            top_k=40,
+            do_sample=True,
+            use_cache=False,
+            # no_repeat_ngram_size=2
+        )
+        answer = tokenizer_vicuna.decode(outputs[0], skip_special_tokens=True)
+
+        index = answer.find("Answer:")
+        if index != -1:
+            answer = answer.split("Answer:")[-1].strip()
+        else:
+            answer = answer.split("Assistant:")[-1].strip()
+
+        
         # Перевод ответа на русский при необходимости
         if language == 'ru':
+            answer_flan = translate_text(answer_flan, model=model_marian_ru, tokenizer=tokenizer_marian_ru, language='russian')
             answer = translate_text(answer, model=model_marian_ru, tokenizer=tokenizer_marian_ru, language='russian')
 
         # Формирование ответа
         response = {
+            "answer_flan": answer_flan,
             "answer": answer,
             "relevance": relevant_blocks
         }
 
         await websocket.send_json(response)
 
-# WebSocket метод vote
-@app.websocket("/vote")
-async def vote_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_json()
-        question = data["question"]
-        answer = data["answer"]
-        score = data["score"]
+@app.post("/process_questions")
+async def process_questions(file: UploadFile = File(...)):
+    # Read the uploaded Excel file into a pandas DataFrame
+    df = pd.read_excel(file.file)
 
-        # Сохранение оценки в Elasticsearch
-        doc = {
-            "question": question,
-            "answer": answer,
-            "score": score
+    # Iterate over each question in the DataFrame
+    for index, row in df.iterrows():
+        question = row['question']
+
+        # Detect the language of the question
+        language = detect(question)
+
+        corrected_question = question
+
+        if language == 'ru':
+            corrected_question = translate_text(
+                corrected_question,
+                model=model_marian,
+                tokenizer=tokenizer_marian,
+                language='english'
+            )
+
+        # Generate question embedding
+        question_embedding = model_sbert.encode(corrected_question).tolist()
+
+        # Build Elasticsearch query
+        script_query = {
+            "script_score": {
+                "query": {"match_all": {}},
+                "script": {
+                    "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+                    "params": {"query_vector": question_embedding}
+                }
+            }
         }
-        es.index(index="learning-score", body=doc)
 
-        await websocket.send_text("Оценка получена")
+        response = es.search(
+            index="text_segments",
+            body={
+                "size": 1,  # Limit to only the top result
+                "query": script_query,
+                "_source": ["file_name", "text", "page_number"]
+            }
+        )
+
+        context = ""
+        min_score = 1.6
+
+        if response['hits']['hits'] and response['hits']['hits'][0]["_score"] > min_score:
+            hit = response['hits']['hits'][0]
+            context = hit["_source"]["text"]
+            # Remove file extension from filename
+            filename = os.path.splitext(hit["_source"]["file_name"])[0]
+            slide_number = hit["_source"]["page_number"]
+            input_text = f"Question: {corrected_question} Context (if relevant): {context} Answer: "
+        else:
+            filename = ''
+            slide_number = ''
+            input_text = (
+                f"Question: {corrected_question} "
+                "Answer the question based on your general knowledge without any specific context. "
+                "If relevant, provide as detailed and informative an answer as possible. Answer: "
+            )
+
+        # Generate answer using the language model
+        input_ids = tokenizer_flan(input_text, return_tensors='pt').input_ids.to(device)
+        outputs = model_flan.generate(
+            input_ids,
+            temperature=0.7,
+            max_length=256,
+            max_new_tokens=50,
+            top_p=0.9,
+            top_k=40,
+            do_sample=True,
+            use_cache=False,
+        )
+        answer = tokenizer_flan.decode(outputs[0], skip_special_tokens=True)
+
+        # Translate the answer back to Russian if necessary
+        if language == 'ru':
+            answer = translate_text(
+                answer,
+                model=model_marian_ru,
+                tokenizer=tokenizer_marian_ru,
+                language='russian'
+            )
+
+        # Fill in the 'answer' column
+        df.at[index, 'answer'] = answer
+
+        # Update 'filename' and 'slide_number' columns
+        df.at[index, 'filename'] = filename
+        df.at[index, 'slide_number'] = slide_number
+
+    # Save the DataFrame to an Excel file in memory
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False)
+    output.seek(0)
+
+    # Return the Excel file as a streaming response
+    return StreamingResponse(
+        output,
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={"Content-Disposition": "attachment; filename=processed_questions.xlsx"}
+    )
 
 # WebSocket метод prompt
 @app.websocket("/prompt")
@@ -518,6 +666,31 @@ async def prompt_endpoint(websocket: WebSocket):
 
         await websocket.send_json(suggestions)
 
+# Модель данных для принятия JSON
+class LearningScore(BaseModel):
+    question: str
+    answer: str
+    score: int
+
+# Метод vote
+@app.post("/vote")
+async def vote_endpoint(data: LearningScore):
+    try:
+        # Проверяем, существует ли индекс, если нет, создаем его
+        if not es.indices.exists(index="learning-score"):
+            es.indices.create(index="learning-score")
+        
+        # Добавляем запись в индекс
+        response = es.index(index="learning-score", document=data.dict())
+        return {"status": "success", "data": response}
+
+    except exceptions.ConnectionError:
+        raise HTTPException(status_code=500, detail="Connection to Elasticsearch failed")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+        
 # # API для получения информации о файле по его checksum
 # @app.get("/file_info/{checksum}")
 # async def get_file_info(checksum: str):
